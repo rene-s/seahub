@@ -9,7 +9,7 @@ define([
     var ActivityCollection = Backbone.Collection.extend({
         model: Activity,
         url: function () {
-            return Common.getUrl({name: 'events'});
+            return Common.getUrl({name: 'activities'});
         }
     });
 

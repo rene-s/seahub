@@ -1889,7 +1889,21 @@
 <script type="text/template" id="activity-item-tmpl">
     <%= activity.avatar %>
     <div class="txt">
-        <% if (activity.etype == "repo-update") { %>
+        <% if (activity.op_type == "create" && activity.obj_type == 'repo') { %>
+            <p>{% trans "Created library" %} <a href="#common/lib/<%= activity.repo_id %>/" class="normal"><%- activity.repo_name %></a></p>
+        <% } else if (activity.op_type == "delete" && activity.obj_type == 'repo') { %>
+            <p>{% trans "Deleted library" %} <%- activity.repo_name %></p>
+        <% } else if (activity.op_type == "recover" && activity.obj_type == 'repo') { %>
+            <p>{% trans "Recover library" %} <a href="#common/lib/<%= activity.repo_id %>/" class="normal"><%- activity.repo_name %></a></p>
+        <% } else if (activity.op_type == "rename" && activity.obj_type == 'repo') { %>
+            <a href="#common/lib/<%= activity.repo_id %>/" class="updated-repo normal fright"><%- activity.repo_name %></a>
+            <p>{% trans "Changed library name or description" %}</p>
+        <% } else if (activity.op_type == "clean-up-trash" && activity.obj_type == 'repo') { %>
+            <a href="#common/lib/<%= activity.repo_id %>/" class="updated-repo normal fright"><%- activity.repo_name %></a>
+            <span class="cmt-desc">
+            <%- activity.desc %>
+            </span>
+        <% } else { %>
         <p class="w100 ovhd">
         <a href="#common/lib/<%= activity.repo_id %>/" class="updated-repo normal fright"><%- activity.repo_name %></a>
         <span class="cmt-desc">
@@ -1901,21 +1915,6 @@
             <% } %>
         </span>
         </p>
-        <% } %>
-
-        <% if (activity.etype == "repo-create") { %>
-        <p>{% trans "Created library" %} <a href="#common/lib/<%= activity.repo_id %>/" class="normal"><%- activity.repo_name %></a></p>
-        <% } %>
-
-        <% if (activity.etype == "repo-delete") { %>
-        <p>{% trans "Deleted library" %} <%- activity.repo_name %></p>
-        <% } %>
-
-        <% if (activity.etype == "clean-up-repo-trash") { %>
-            <a href="#common/lib/<%= activity.repo_id %>/" class="updated-repo normal fright"><%- activity.repo_name %></a>
-            <span class="cmt-desc">
-            <%- activity.desc %>
-            </span>
         <% } %>
 
         <p><a class="normal" href="{{ SITE_ROOT }}profile/<% print(encodeURIComponent(activity.author)); %>/"><%- activity.name %></a> <span class="time"><%= activity.time_relative %></span></p>

@@ -61,10 +61,10 @@ from seahub.signals import (repo_created, repo_deleted)
 from seahub.share.models import FileShare, OrgFileShare, UploadLinkShare
 from seahub.utils import gen_file_get_url, gen_token, gen_file_upload_url, \
     check_filename_with_rename, is_valid_username, EVENTS_ENABLED, \
-    get_user_events, EMPTY_SHA1, get_ccnet_server_addr_port, is_pro_version, \
+    get_user_activities, EMPTY_SHA1, get_ccnet_server_addr_port, is_pro_version, \
     gen_block_get_url, get_file_type_and_ext, HAS_FILE_SEARCH, \
     gen_file_share_link, gen_dir_share_link, is_org_context, gen_shared_link, \
-    get_org_user_events, calculate_repos_last_modify, send_perm_audit_msg, \
+    get_org_user_activities, calculate_repos_last_modify, send_perm_audit_msg, \
     gen_shared_upload_link, convert_cmmt_desc_link, is_valid_dirent_name, \
     is_org_repo_creation_allowed, \
     get_no_duplicate_obj_name, normalize_dir_path
@@ -1217,6 +1217,7 @@ class Repo(APIView):
 
         repo_deleted.send(sender=None,
                           org_id=org_id,
+                          operator=username,
                           usernames=usernames,
                           repo_owner=repo_owner,
                           repo_id=repo_id,
@@ -4007,7 +4008,7 @@ class SharedRepo(APIView):
 
         return Response('success', status=status.HTTP_200_OK)
 
-class EventsView(APIView):
+class ActivitiesView(APIView):
     authentication_classes = (TokenAuthentication, SessionAuthentication)
     permission_classes = (IsAuthenticated,)
     throttle_classes = (UserRateThrottle, )
@@ -4018,6 +4019,9 @@ class EventsView(APIView):
             return api_error(status.HTTP_404_NOT_FOUND, 'Events not enabled.')
 
         start = request.GET.get('start', '')
+        order = request.GET.get('order', 'dtime').lower()
+        if order not in ['time', 'dtime']:
+            return api_error(status.HTTP_400_BAD_REQUEST, 'order invalid.')
 
         if not start:
             start = 0
@@ -4032,19 +4036,32 @@ class EventsView(APIView):
 
         if is_org_context(request):
             org_id = request.user.org.org_id
-            events, events_more_offset = get_org_user_events(org_id, email,
-                                                             start,
-                                                             events_count)
+            events, events_more_offset = get_org_user_activities(org_id, email,
+                                                                 start,
+                                                                 events_count, order)
         else:
-            events, events_more_offset = get_user_events(email, start,
-                                                         events_count)
+            events, events_more_offset = get_user_activities(email, start,
+                                                            events_count, order)
         events_more = True if len(events) == events_count else False
 
         l = []
         for e in events:
-            d = dict(etype=e.etype)
+            d = dict(op_type=e.op_type)
+            d['obj_type'] = e.obj_type
             l.append(d)
-            if e.etype == 'repo-update':
+            if e.op_type in ['create', 'delete', 'rename', 'recover'] and e.obj_type == 'repo':
+                d['repo_id'] = e.repo_id
+                d['repo_name'] = e.repo_name
+                d['author'] = e.op_user
+                d['time'] = datetime_to_timestamp(e.timestamp)
+            elif e.op_type == 'clean-up-trash':
+                d['repo_id'] = e.repo_id
+                d['author'] = e.username
+                d['time'] = datetime_to_timestamp(e.timestamp)
+                d['days'] = e.days
+                d['repo_name'] = e.repo_name
+                d['op_type'] = e.op_type
+            else:
                 d['author'] = e.commit.creator_name
                 d['time'] = e.commit.ctime
                 d['desc'] = e.commit.desc
@@ -4054,22 +4071,6 @@ class EventsView(APIView):
                 d['converted_cmmt_desc'] = translate_commit_desc_escape(convert_cmmt_desc_link(e.commit))
                 d['more_files'] = e.commit.more_files
                 d['repo_encrypted'] = e.repo.encrypted
-            elif e.etype == 'clean-up-repo-trash':
-                d['repo_id'] = e.repo_id
-                d['author'] = e.username
-                d['time'] = datetime_to_timestamp(e.timestamp)
-                d['days'] = e.days
-                d['repo_name'] = e.repo_name
-                d['etype'] = e.etype
-            else:
-                d['repo_id'] = e.repo_id
-                d['repo_name'] = e.repo_name
-                if e.etype == 'repo-create':
-                    d['author'] = e.creator
-                else:
-                    d['author'] = e.repo_owner
-
-                d['time'] = datetime_to_timestamp(e.timestamp)
 
             size = request.GET.get('size', 36)
             url, is_default, date_uploaded = api_avatar_url(d['author'], size)

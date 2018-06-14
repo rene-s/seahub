@@ -20,7 +20,7 @@ define([
 
         initialize: function(activity) {
             this.activity = activity;
-            if (activity.etype == 'clean-up-repo-trash') {
+            if (activity.op_type == 'clean-up-trash') {
                 if (activity.days == 0) {
                     this.activity.desc =  gettext('Removed all items from trash.');
                 } else {
@@ -38,6 +38,7 @@ define([
         },
 
         render: function () {
+            console.log(this.activity);
             this.$el.html(this.template({'activity': this.activity}));
             return this;
         }

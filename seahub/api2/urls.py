@@ -88,7 +88,7 @@ urlpatterns = [
     url(r'^f/(?P<token>[a-f0-9]+)/detail/$', SharedFileDetailView.as_view()),
     url(r'^d/(?P<token>[a-f0-9]+)/dir/$', SharedDirView.as_view()),
 
-    url(r'^events/$', EventsView.as_view()),
+    url(r'^activities/$', ActivitiesView.as_view()),
     url(r'^repo_history_changes/(?P<repo_id>[-0-9a-f]{36})/$', RepoHistoryChange.as_view()),
     url(r'^unseen_messages/$', UnseenMessagesCountView.as_view()),
 

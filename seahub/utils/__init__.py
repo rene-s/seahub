@@ -539,17 +539,19 @@ if EVENTS_CONFIG_FILE:
     def _same_events(e1, e2):
         """Two events are equal should follow two rules:
         1. event1.repo_id = event2.repo_id
-        2. event1.commit.creator = event2.commit.creator
-        3. event1.commit.desc = event2.commit.desc
+        2. event1.timstamp = event2.timestamp
+        3. event1.op_type = event2.op_type
+        4. event1.obj_type == event2.obj_type
+        5. event1.path == event2.path
+        6. event1.op_user == event2.op_user
         """
-        if hasattr(e1, 'commit') and hasattr(e2, 'commit'):
-            if e1.repo_id == e2.repo_id and \
-               e1.commit.desc == e2.commit.desc and \
-               e1.commit.creator_name == e2.commit.creator_name:
-                return True
+        if e1.repo_id == e2.repo_id and e1.timestamp == e2.timestamp and \
+                e1.op_type == e2.op_type and e1.obj_type == e2.obj_type and \
+                e1.path == e2.path and e1.op_user == e2.op_user:
+                    return True
         return False
 
-    def _get_events(username, start, count, org_id=None):
+    def _get_activities(username, start, count, org_id=None, order='dtime'):
         ev_session = SeafEventsSession()
 
         valid_events = []
@@ -557,8 +559,8 @@ if EVENTS_CONFIG_FILE:
         try:
             next_start = start
             while True:
-                events = _get_events_inner(ev_session, username, next_start,
-                                           count, org_id)
+                events = _get_activities_inner(ev_session, username, next_start,
+                                           count, org_id, order)
                 if not events:
                     break
 
@@ -574,6 +576,7 @@ if EVENTS_CONFIG_FILE:
 
                     if not duplicate and not new_merge:
                         valid_events.append(e1)
+
                     total_used = total_used + 1
                     if len(valid_events) == count:
                         break
@@ -590,8 +593,8 @@ if EVENTS_CONFIG_FILE:
                 e.commit.more_files = more_files_in_commit(e.commit)
         return valid_events, start + total_used
 
-    def _get_events_inner(ev_session, username, start, limit, org_id=None):
-        '''Read events from seafevents database, and remove events that are
+    def _get_activities_inner(ev_session, username, start, limit, org_id=None, order='dtime'):
+        '''Read events from seafevents database, and skip events that are
         no longer valid
 
         Return 'limit' events or less than 'limit' events if no more events remain
@@ -600,27 +603,30 @@ if EVENTS_CONFIG_FILE:
         next_start = start
         while True:
             if org_id > 0:
-                events = seafevents.get_org_user_events(ev_session, org_id,
-                                                        username, next_start,
-                                                        limit)
+                events = seafevents.get_org_user_activities(ev_session, org_id,
+                                                            username, next_start,
+                                                            limit, order)
             else:
-                events = seafevents.get_user_events(ev_session, username,
-                                                    next_start, limit)
+                events = seafevents.get_user_activities(ev_session, username,
+                                                        next_start, limit, order)
             if not events:
                 break
 
             for ev in events:
-                if ev.etype == 'repo-update':
-                    repo = seafile_api.get_repo(ev.repo_id)
-                    if not repo:
-                        # delete the update event for repo which has been deleted
-                        seafevents.delete_event(ev_session, ev.uuid)
-                        continue
+                repo = seafile_api.get_repo(ev.repo_id)
+                if not repo and ev.obj_type != 'repo':
+                    # delete the update event for repo which has been deleted
+                    # seafevents.delete_event(ev_session, ev.uuid)
+                    continue
+
+                if repo:
                     if repo.encrypted:
                         repo.password_set = seafile_api.is_password_set(
                             repo.id, username)
+
                     ev.repo = repo
-                    ev.commit = seaserv.get_commit(repo.id, repo.version, ev.commit_id)
+                    if ev.commit_id:
+                        ev.commit = seaserv.get_commit(repo.id, repo.version, ev.commit_id)
 
                 valid_events.append(ev)
                 if len(valid_events) == limit:
@@ -628,20 +634,20 @@ if EVENTS_CONFIG_FILE:
 
             if len(valid_events) == limit:
                 break
-            next_start = next_start + len(valid_events)
+            next_start = next_start + len(events)
 
         return valid_events
 
-    def get_user_events(username, start, count):
+    def get_user_activities(username, start, count, order):
         """Return user events list and a new start.
 
         For example:
-        ``get_user_events('foo@example.com', 0, 10)`` returns the first 10
+        ``get_user_activities('foo@example.com', 0, 10)`` returns the first 10
         events.
-        ``get_user_events('foo@example.com', 5, 10)`` returns the 6th through
+        ``get_user_activities('foo@example.com', 4, 10)`` returns the 6th through
         15th events.
         """
-        return _get_events(username, start, count)
+        return _get_activities(username, start, count, order=order)
    
     def get_user_activity_stats_by_day(start, end, offset):
         """
@@ -650,8 +656,8 @@ if EVENTS_CONFIG_FILE:
             res = seafevents.get_user_activity_stats_by_day(session, start, end, offset)
         return res
 
-    def get_org_user_events(org_id, username, start, count):
-        return _get_events(username, start, count, org_id=org_id)
+    def get_org_user_activities(org_id, username, start, count, order):
+        return _get_activities(username, start, count, org_id=org_id, order=order)
 
     def get_log_events_by_time(log_type, tstart, tend):
         """Return log events list by start/end timestamp. (If no logs, return 'None')
