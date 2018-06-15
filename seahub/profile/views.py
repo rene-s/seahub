@@ -102,14 +102,11 @@ def edit_profile(request):
 
     from social_django.models import UserSocialAuth
 
-    social_auth_map = {}
-    for x in settings.SOCIAL_AUTH_METHODS:
-        social_auth_map[x[0]] = x[1]
-
     enabled_social_auth = [x for x in UserSocialAuth.objects.filter(
         username=request.user.username)]
     for x in enabled_social_auth:
-        x.provider_name = social_auth_map[x.provider]
+        if x.provider == 'weixin-work':
+            x.provider_name = _('WeChat Work')
     resp_dict['enabled_social_auth'] = enabled_social_auth
 
     available_social_auth = []
