@@ -4019,10 +4019,6 @@ class ActivitiesView(APIView):
             return api_error(status.HTTP_404_NOT_FOUND, 'Events not enabled.')
 
         start = request.GET.get('start', '')
-        order = request.GET.get('order', 'dtime').lower()
-        if order not in ['time', 'dtime']:
-            return api_error(status.HTTP_400_BAD_REQUEST, 'order invalid.')
-
         if not start:
             start = 0
         else:
@@ -4038,10 +4034,10 @@ class ActivitiesView(APIView):
             org_id = request.user.org.org_id
             events, events_more_offset = get_org_user_activities(org_id, email,
                                                                  start,
-                                                                 events_count, order)
+                                                                 events_count)
         else:
             events, events_more_offset = get_user_activities(email, start,
-                                                            events_count, order)
+                                                            events_count)
         events_more = True if len(events) == events_count else False
 
         l = []
@@ -4049,7 +4045,7 @@ class ActivitiesView(APIView):
             d = dict(op_type=e.op_type)
             d['obj_type'] = e.obj_type
             l.append(d)
-            if e.op_type in ['create', 'delete', 'rename', 'recover'] and e.obj_type == 'repo':
+            if e.op_type in ['create', 'rename', 'delete','recover'] and e.obj_type == 'repo':
                 d['repo_id'] = e.repo_id
                 d['repo_name'] = e.repo_name
                 d['author'] = e.op_user
@@ -4066,7 +4062,7 @@ class ActivitiesView(APIView):
                 d['time'] = e.commit.ctime
                 d['desc'] = e.commit.desc
                 d['repo_id'] = e.repo.id
-                d['repo_name'] = e.repo.name
+                d['repo_name'] = e.repo.repo_name
                 d['commit_id'] = e.commit.id
                 d['converted_cmmt_desc'] = translate_commit_desc_escape(convert_cmmt_desc_link(e.commit))
                 d['more_files'] = e.commit.more_files

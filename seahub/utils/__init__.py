@@ -551,7 +551,7 @@ if EVENTS_CONFIG_FILE:
                     return True
         return False
 
-    def _get_activities(username, start, count, org_id=None, order='dtime'):
+    def _get_activities(username, start, count, org_id=None):
         ev_session = SeafEventsSession()
 
         valid_events = []
@@ -560,10 +560,11 @@ if EVENTS_CONFIG_FILE:
             next_start = start
             while True:
                 events = _get_activities_inner(ev_session, username, next_start,
-                                           count, org_id, order)
+                                           count, org_id)
                 if not events:
                     break
 
+                # filter duplicatly commit and merged commit
                 for e1 in events:
                     duplicate = False
                     for e2 in valid_events:
@@ -593,7 +594,7 @@ if EVENTS_CONFIG_FILE:
                 e.commit.more_files = more_files_in_commit(e.commit)
         return valid_events, start + total_used
 
-    def _get_activities_inner(ev_session, username, start, limit, org_id=None, order='dtime'):
+    def _get_activities_inner(ev_session, username, start, limit, org_id=None):
         '''Read events from seafevents database, and skip events that are
         no longer valid
 
@@ -605,10 +606,10 @@ if EVENTS_CONFIG_FILE:
             if org_id > 0:
                 events = seafevents.get_org_user_activities(ev_session, org_id,
                                                             username, next_start,
-                                                            limit, order)
+                                                            limit)
             else:
                 events = seafevents.get_user_activities(ev_session, username,
-                                                        next_start, limit, order)
+                                                        next_start, limit)
             if not events:
                 break
 
@@ -638,7 +639,7 @@ if EVENTS_CONFIG_FILE:
 
         return valid_events
 
-    def get_user_activities(username, start, count, order):
+    def get_user_activities(username, start, count):
         """Return user events list and a new start.
 
         For example:
@@ -647,7 +648,7 @@ if EVENTS_CONFIG_FILE:
         ``get_user_activities('foo@example.com', 4, 10)`` returns the 6th through
         15th events.
         """
-        return _get_activities(username, start, count, order=order)
+        return _get_activities(username, start, count)
    
     def get_user_activity_stats_by_day(start, end, offset):
         """
@@ -656,8 +657,8 @@ if EVENTS_CONFIG_FILE:
             res = seafevents.get_user_activity_stats_by_day(session, start, end, offset)
         return res
 
-    def get_org_user_activities(org_id, username, start, count, order):
-        return _get_activities(username, start, count, org_id=org_id, order=order)
+    def get_org_user_activities(org_id, username, start, count):
+        return _get_activities(username, start, count, org_id=org_id)
 
     def get_log_events_by_time(log_type, tstart, tend):
         """Return log events list by start/end timestamp. (If no logs, return 'None')
@@ -760,13 +761,13 @@ if EVENTS_CONFIG_FILE:
             return seafevents.get_virus_record_by_id(session, vid)
 else:
     EVENTS_ENABLED = False
-    def get_user_events():
+    def get_user_activities():
         pass
     def get_user_activity_stats_by_day():
         pass
     def get_log_events_by_time():
         pass
-    def get_org_user_events():
+    def get_org_user_activities():
         pass
     def generate_file_audit_event_type():
         pass
