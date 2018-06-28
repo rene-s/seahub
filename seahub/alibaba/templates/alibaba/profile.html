@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load avatar_tags i18n seahub_tags %}
+
+{% block sub_title %}{% trans "Profile" %} - {% endblock %}
+{% block header_css_class %}d-flex{% endblock %}
+
+{% block main_panel %}
+
+<div id="user-profile">
+
+{% comment %}
+<img src="{{ personal_photo_url }}" title="{{ emp_name|escapejs }}" width="64" height="64" class="avatar">
+{% endcomment %}
+
+<img src="https://demo.seafile.top/media/custom/mylogo.png" title="{{ emp_name|escapejs }}" width="64" height="64" class="avatar">
+
+<p title="{{ emp_name|escapejs }}" class="user-profile-nickname ellipsis">{{ emp_name|escapejs }}</p>
+<p title="{{ nick_name|escapejs }}" class="user-profile-nickname ellipsis">{{ nick_name|escapejs }}</p>
+
+<ul>
+    <li title="{{ post_name|escapejs }}" class="user-profile-info ellipsis">
+        <span class="user-profile-info-icon icon-building fa-1x vam"></span>
+        <span class="vam">{{ post_name|escapejs }}</span>
+    </li>
+    <li title="{{ dept_name|escapejs }}" class="user-profile-info ellipsis">
+        <span class="user-profile-info-icon icon-building fa-1x vam"></span>
+        <span class="vam">{{ dept_name|escapejs }}</span>
+    </li>
+</ul>
+</div>
+
+{% endblock %}

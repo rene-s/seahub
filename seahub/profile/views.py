@@ -104,6 +104,10 @@ def edit_profile(request):
 
 @login_required
 def user_profile(request, username):
+
+    alibaba_profile_url = reverse('alibaba-user-profile', args=[username])
+    return HttpResponseRedirect(alibaba_profile_url)
+
     if is_valid_username(username):
         try:
             user = User.objects.get(email=username)
