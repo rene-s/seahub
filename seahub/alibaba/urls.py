@@ -6,4 +6,5 @@ from seahub.alibaba.views import alibaba_user_profile, SearchUser
 
 urlpatterns = [
     url(r'^profile/(?P<email>[^/]*)/$', alibaba_user_profile, name="alibaba-user-profile"),
+    url(r'^api/search-user/$', SearchUser.as_view(), name='alibaba-search-user'),
 ]

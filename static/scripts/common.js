@@ -179,7 +179,7 @@ define([
                 case 'invitations': return siteRoot + 'api/v2.1/invitations/';
                 case 'invitations_batch': return siteRoot + 'api/v2.1/invitations/batch/';
                 case 'invitation': return siteRoot + 'api/v2.1/invitations/' + options.token + '/';
-                case 'search_user': return siteRoot + 'api2/search-user/';
+                case 'search_user': return siteRoot + 'alibaba/api/search-user/';
                 case 'user_profile': return siteRoot + 'profile/' + options.username + '/';
                 case 'space_and_traffic': return siteRoot + 'ajax/space_and_traffic/';
 
@@ -677,13 +677,16 @@ define([
 
                         for (var i = 0, len = users.length; i < len; i++) {
                             user_list.push({ // 'id' & 'text' are required by the plugin
-                                "id": users[i].email,
+                                "id": users[i].uid,
                                 // for search. both name & email can be searched.
                                 // use ' '(space) to separate name & email
-                                "text": users[i].name + ' ' + users[i].contact_email,
-                                "avatar_url": users[i].avatar_url,
-                                "contact_email": users[i].contact_email,
-                                "name": users[i].name
+                                "avatar_url": users[i].personal_photo_url,
+                                "dept_name": users[i].dept_name,
+                                "name": users[i].emp_name,
+                                "nick_name": users[i].nick_name,
+                                "post_name": users[i].post_name
+                                // TODO
+                                //"text": users[i].emp_name + ' ' + users[i].contact_email,
                             });
                         }
 
@@ -696,7 +699,7 @@ define([
                 // format items shown in the drop-down menu
                 formatResult: function(item) {
                     if (item.avatar_url) {
-                        return '<img src="' + item.avatar_url + '" width="32" height="32" class="avatar"><span class="text ellipsis">' + _this.HTMLescape(item.name) + '<br />' + _this.HTMLescape(item.contact_email) + '</span>';
+                        return '<img src="' + item.avatar_url + '" width="32" height="32" class="avatar"><span class="text ellipsis">' + _this.HTMLescape(item.name) + '(' + _this.HTMLescape(item.nick_name) + ')-' + _this.HTMLescape(item.post_name) + '<br />' + _this.HTMLescape(item.dept_name) + '</span>';
                     } else {
                         return; // if no match, show nothing
                     }
